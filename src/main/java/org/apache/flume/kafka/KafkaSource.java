@@ -6,7 +6,6 @@ import com.cloudera.flume.conf.SourceFactory;
 import com.cloudera.flume.core.Event;
 import com.cloudera.flume.core.EventImpl;
 import com.cloudera.flume.core.EventSource;
-import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 import kafka.consumer.Consumer;
 import kafka.consumer.ConsumerConfig;
@@ -24,6 +23,8 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.*;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 public class KafkaSource extends EventSource.Base {
   static final Logger LOG = LoggerFactory.getLogger(KafkaSource.class);
 
@@ -36,16 +37,21 @@ public class KafkaSource extends EventSource.Base {
   private ExecutorService executor;
   private int threads;
 
-  public KafkaSource(final String topic, int threads) {
+  public KafkaSource(final String zkConnect, final String topic, int threads) {
     this.threads = threads;
+    this.topic = topic;
     Properties properties = new Properties();
+    properties.setProperty("zk.connect", zkConnect);
+    properties.setProperty("serializer.class", ByteEncoder.class.getName());
+    properties.setProperty("groupid", "0");
     ConsumerConfig consumerConfig = new ConsumerConfig(properties);
+
     connector = Consumer.createJavaConsumerConnector(consumerConfig);
     executor = Executors.newFixedThreadPool(threads, new ThreadFactory() {
       @Override
       public Thread newThread(Runnable runnable) {
         Thread thread = new Thread(runnable);
-        thread.setName(topic);
+        thread.setName("kafka_consumer_" + topic);
         return thread;
       }
     });
@@ -67,7 +73,7 @@ public class KafkaSource extends EventSource.Base {
    * point it throws an exception).
    */
   public Event next() throws IOException {
-    Event evt = null;
+    Event evt;
     try {
       while (true) {
         evt = eventQueue.take();
@@ -89,14 +95,6 @@ public class KafkaSource extends EventSource.Base {
 
     for (KafkaMessageStream stream : consumerMap.get(topic)) {
       executor.submit(new KafkaConsumerThread(stream));
-    }
-
-    try {
-      executor.shutdown();
-      executor.awaitTermination(Long.MAX_VALUE, TimeUnit.DAYS);
-    } catch (InterruptedException e) {
-      LOG.error("Kafka consumer threads have been interrupted", e);
-      throw new IOException(e);
     }
   }
 
@@ -134,10 +132,14 @@ public class KafkaSource extends EventSource.Base {
     return new SourceFactory.SourceBuilder() {
       @Override
       public EventSource build(Context ctx, String... argv) {
-        Preconditions.checkArgument(argv.length >= 0 && argv.length <= 1,
-            "kafka[(topic)]");
+        checkArgument(argv.length >= 0 && argv.length <= 3,
+            "kafka[(zk.connect), (topic), (threads)]");
 
-        return new KafkaSource("test", 4);
+        String zkConnect = argv[0];
+        String topic = argv[1];
+        Integer threads = Integer.parseInt(argv[2]);
+
+        return new KafkaSource(zkConnect, topic, threads);
       }
     };
   }
