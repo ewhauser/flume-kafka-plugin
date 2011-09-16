@@ -6,6 +6,7 @@ class Project(info: ProjectInfo) extends StandardLibraryProject(info)
   with IdeaProject {
 
   override def dependencyPath = "lib"
+  override def compileOrder = CompileOrder.ScalaThenJava
   override def testOptions = super.testOptions ++ Seq(TestArgument(TestFrameworks.JUnit, "-q", "-v"))
 
   override def repositories = Set[Resolver]("cloudera" at "https://repository.cloudera.com/content/repositories/releases/")
