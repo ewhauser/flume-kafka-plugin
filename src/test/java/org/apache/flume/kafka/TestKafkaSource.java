@@ -54,7 +54,7 @@ public class TestKafkaSource {
   @Test
   public void simpleConsumer() throws FlumeSpecException, IOException, InterruptedException {
     SourceFactory.SourceBuilder bld = KafkaSource.kafkaSourceBuilder();
-    EventSource src = bld.create(null, TestZKUtils.zookeeperConnect(), "test", 2);
+    EventSource src = bld.create(null, TestZKUtils.zookeeperConnect(), "test", "test_group", 2);
     final List<Event> captured = Lists.newArrayList();
     EventSink snk = new EventSink.Base() {
       @Override

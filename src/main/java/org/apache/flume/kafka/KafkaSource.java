@@ -35,15 +35,17 @@ public class KafkaSource extends EventSource.Base {
   private String topic;
   private volatile boolean shutdown = false;
   private ExecutorService executor;
+  private String group;
   private int threads;
 
-  public KafkaSource(final String zkConnect, final String topic, int threads) {
+  public KafkaSource(final String zkConnect, final String topic, String group, int threads) {
+    this.group = group;
     this.threads = threads;
     this.topic = topic;
     Properties properties = new Properties();
     properties.setProperty("zk.connect", zkConnect);
     properties.setProperty("serializer.class", ByteEncoder.class.getName());
-    properties.setProperty("groupid", "0");
+    properties.setProperty("groupid", group);
     ConsumerConfig consumerConfig = new ConsumerConfig(properties);
 
     connector = Consumer.createJavaConsumerConnector(consumerConfig);
@@ -132,14 +134,15 @@ public class KafkaSource extends EventSource.Base {
     return new SourceFactory.SourceBuilder() {
       @Override
       public EventSource build(Context ctx, String... argv) {
-        checkArgument(argv.length >= 0 && argv.length <= 3,
-            "kafka[(zk.connect), (topic), (threads)]");
+        checkArgument(argv.length >= 0 && argv.length <= 4,
+            "kafka[(zk.connect), (topic), (group), (threads)]");
 
         String zkConnect = argv[0];
         String topic = argv[1];
-        Integer threads = Integer.parseInt(argv[2]);
+        String groupid = argv[2];
+        Integer threads = Integer.parseInt(argv[3]);
 
-        return new KafkaSource(zkConnect, topic, threads);
+        return new KafkaSource(zkConnect, topic, groupid, threads);
       }
     };
   }
