@@ -5,10 +5,8 @@ import com.cloudera.flume.conf.SinkFactory;
 import com.cloudera.flume.conf.SinkFactory.SinkBuilder;
 import com.cloudera.flume.core.Event;
 import com.cloudera.flume.core.EventSink;
-import com.cloudera.flume.handlers.syslog.SyslogTcpSink;
-import com.cloudera.flume.handlers.syslog.SyslogTcpSource;
 import com.cloudera.util.Pair;
-import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
 import kafka.javaapi.producer.Producer;
 import kafka.javaapi.producer.ProducerData;
 import kafka.producer.ProducerConfig;
@@ -40,7 +38,14 @@ public class KafkaSink extends EventSink.Base {
 
   @Override
   public void append(Event e) throws IOException {
-    producer.send(new ProducerData<String, byte[]>(topic, e.getBody()));
+    byte[] partition = e.get("kafka.partition.key");
+
+    if (partition == null) {
+      producer.send(new ProducerData<String, byte[]>(topic, e.getBody()));
+    } else {
+      producer.send(new ProducerData<String, byte[]>(topic, new String(partition, "UTF-8"),
+          Lists.newArrayList(e.getBody())));
+    }
   }
 
   @Override

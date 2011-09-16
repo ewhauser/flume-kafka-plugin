@@ -15,25 +15,18 @@ import kafka.zk.EmbeddedZookeeper;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.util.Iterator;
 import java.util.Properties;
 
-import static junit.framework.Assert.assertEquals;
-import static junit.framework.Assert.assertTrue;
-import static junit.framework.Assert.fail;
+import static junit.framework.Assert.*;
 
 public class TestKafaSink {
 
-  private static final Logger LOG = LoggerFactory.getLogger(TestKafaSink.class);
   private EmbeddedZookeeper zkServer;
 
-  private int brokerId = 0;
   private int port = 9092;
-  private KafkaConfig config;
-  private Properties props;
   private KafkaServer server;
   private SimpleConsumer consumer;
   private KafkaSink kafkaSink;
@@ -41,7 +34,9 @@ public class TestKafaSink {
   @Before
   public void before() {
     zkServer = new EmbeddedZookeeper(TestZKUtils.zookeeperConnect());
-    Properties props = TestUtils.createBrokerConfig(brokerId, port);
+    Properties props = TestUtils.createBrokerConfig(0, port);
+    props.setProperty("num.partitions", "2");
+    props.setProperty("topic.partition.count.map", "test:2");
     KafkaConfig config = new KafkaConfig(props);
     server = TestUtils.createServer(config);
     consumer = new SimpleConsumer("localhost", port, 1000000, 64*1024);
@@ -54,8 +49,34 @@ public class TestKafaSink {
     Event e = new EventImpl("test1".getBytes(), Clock.unixTime(), Event.Priority.INFO, 0, "localhost");
     kafkaSink.append(e);
     Thread.sleep(100);
-    // cross check if brokers got the messages
-    Iterator<Message> messageSet1 = consumer.fetch(new FetchRequest("test", 0, 0, 10000)).iterator();
+    expectOneMessage(0);
+  }
+
+  @Test
+  public void sampleKeyGoesToCorrectPartition() {
+    assertEquals(new String("testPartitionKey".getBytes()).hashCode() % 2, 1);
+  }
+
+  @Test
+  public void canSendToPartition() throws Exception {
+    kafkaSink = new KafkaSink(TestZKUtils.zookeeperConnect(), "test");
+    kafkaSink.open();
+    sendPartitionedMessage();
+    Thread.sleep(100);
+    expectOneMessage(0);
+    Thread.sleep(100);
+    sendPartitionedMessage();
+    expectOneMessage(1);
+  }
+
+  private void sendPartitionedMessage() throws IOException {
+    Event e = new EventImpl("test1".getBytes(), Clock.unixTime(), Event.Priority.INFO, 0, "localhost");
+    e.set("kafka.partition.key", "testPartitionKey".getBytes());
+    kafkaSink.append(e);
+  }
+
+  private void expectOneMessage(int partition) {
+    Iterator<Message> messageSet1 = consumer.fetch(new FetchRequest("test", partition, 0, 10000)).iterator();
     assertTrue("Message set should have 1 message", messageSet1.hasNext());
     assertEquals(new Message("test1".getBytes()), messageSet1.next());
   }
