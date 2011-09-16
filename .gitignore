@@ -1,0 +1,12 @@
+*.iml
+.idea
+.ivyjars
+dist
+lib_managed
+out
+project/boot
+project/build/target
+project/plugins/lib_managed
+project/plugins/src_managed
+project/plugins/target
+target

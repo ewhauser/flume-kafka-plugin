@@ -1,0 +1,3 @@
+# Flume plugin for Kafka
+
+Work in progress...
