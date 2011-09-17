@@ -3,6 +3,7 @@ package org.apache.flume.kafka;
 import com.cloudera.flume.core.Event;
 import com.cloudera.flume.core.EventImpl;
 import com.cloudera.util.Clock;
+import junit.framework.AssertionFailedError;
 import kafka.api.FetchRequest;
 import kafka.javaapi.consumer.SimpleConsumer;
 import kafka.message.Message;
@@ -64,7 +65,20 @@ public class TestKafaSink {
     sendPartitionedMessage();
     Thread.sleep(100);
     expectOneMessage(0);
-    Thread.sleep(100);
+
+    //Race condition while waiting for balancing
+    long start = System.currentTimeMillis();
+    boolean found = false;
+    while (!found && System.currentTimeMillis() < (start + 3000)) {
+      Thread.sleep(100);
+      try {
+        sendPartitionedMessage();
+        expectOneMessage(1);
+      } catch (AssertionFailedError e) {
+        continue;
+      }
+      found = true;
+    }
     sendPartitionedMessage();
     expectOneMessage(1);
   }
