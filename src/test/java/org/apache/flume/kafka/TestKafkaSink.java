@@ -23,7 +23,7 @@ import java.util.Properties;
 
 import static junit.framework.Assert.*;
 
-public class TestKafaSink {
+public class TestKafkaSink {
 
   private EmbeddedZookeeper zkServer;
 

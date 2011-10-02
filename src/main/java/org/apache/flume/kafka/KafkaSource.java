@@ -24,6 +24,7 @@ import java.util.Properties;
 import java.util.concurrent.*;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Strings.isNullOrEmpty;
 
 public class KafkaSource extends EventSource.Base {
   static final Logger LOG = LoggerFactory.getLogger(KafkaSource.class);

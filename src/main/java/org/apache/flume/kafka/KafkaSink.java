@@ -62,7 +62,7 @@ public class KafkaSink extends EventSink.Base {
   @Override
   synchronized public void open() throws IOException {
     checkState(producer == null, "Kafka sink is already initialized. Looks like sink close() " +
-        "hasn't been proceeded properly.");
+        "hasn't been preceeded properly.");
 
     Properties properties = new Properties();
     properties.setProperty("zk.connect", zkConnect);
@@ -78,13 +78,13 @@ public class KafkaSink extends EventSink.Base {
 
       @Override
       public EventSink build(Context context, String... argv) {
-        checkArgument(argv.length < 1, USAGE);
+        checkArgument(argv.length == 2, USAGE);
 
         String zkConnect = argv[0];
-        String topic = argv[0];
+        String topic = argv[1];
 
-        checkState(!isNullOrEmpty(zkConnect), "zk.connect cannot be empty");
-        checkState(!isNullOrEmpty(topic), "topic cannot be empty");
+        checkArgument(!isNullOrEmpty(zkConnect), "zk.connect cannot be empty");
+        checkArgument(!isNullOrEmpty(topic), "topic cannot be empty");
 
         return new KafkaSink(zkConnect, topic);
       }
