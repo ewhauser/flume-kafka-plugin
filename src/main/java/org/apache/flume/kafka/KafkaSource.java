@@ -61,12 +61,14 @@ public class KafkaSource extends EventSource.Base {
     });
   }
 
+  @Override
   public void close() throws IOException {
     // make sure
     shutdown = true;
     try {
       executor.shutdown();
       executor.awaitTermination(2, TimeUnit.SECONDS);
+      LOG.info("Kafka source successfully closed");
     } catch (InterruptedException e) {
       LOG.debug("Waiting for Kafka consumer threads to exit was interrupted", e);
     }
@@ -76,6 +78,7 @@ public class KafkaSource extends EventSource.Base {
    * Blocks on either getting an event from the queue or process exit (at which
    * point it throws an exception).
    */
+  @Override
   public Event next() throws IOException {
     Event evt;
     try {
@@ -92,6 +95,7 @@ public class KafkaSource extends EventSource.Base {
     }
   }
 
+  @Override
   public void open() throws IOException {
     Map<String, Integer> topicCountMap = Maps.newHashMapWithExpectedSize(1);
     topicCountMap.put(topic, threads);
@@ -100,6 +104,8 @@ public class KafkaSource extends EventSource.Base {
     for (KafkaMessageStream stream : consumerMap.get(topic)) {
       executor.submit(new KafkaConsumerThread(stream));
     }
+
+    LOG.info("Kafka source successfully opened");
   }
 
   class KafkaConsumerThread implements Callable<Object> {
