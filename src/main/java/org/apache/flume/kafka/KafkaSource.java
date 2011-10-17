@@ -6,6 +6,7 @@ import com.cloudera.flume.conf.SourceFactory;
 import com.cloudera.flume.core.Event;
 import com.cloudera.flume.core.EventImpl;
 import com.cloudera.flume.core.EventSource;
+import com.cloudera.util.Pair;
 import com.google.common.collect.Maps;
 import kafka.consumer.Consumer;
 import kafka.consumer.ConsumerConfig;
@@ -24,7 +25,7 @@ import java.util.Properties;
 import java.util.concurrent.*;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Strings.isNullOrEmpty;
+import static java.util.Arrays.asList;
 
 public class KafkaSource extends EventSource.Base {
   static final Logger LOG = LoggerFactory.getLogger(KafkaSource.class);
@@ -146,6 +147,11 @@ public class KafkaSource extends EventSource.Base {
         return new KafkaSource(zkConnect, topic, groupid, threads);
       }
     };
+  }
+
+  @SuppressWarnings("unchecked")
+  public static List<Pair<String, SourceFactory.SourceBuilder>> getSourceBuilders() {
+    return asList(new Pair<String, SourceFactory.SourceBuilder>("kafka", kafkaSourceBuilder()));
   }
 
 }

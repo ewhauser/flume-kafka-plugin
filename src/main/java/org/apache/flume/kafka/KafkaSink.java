@@ -62,7 +62,7 @@ public class KafkaSink extends EventSink.Base {
   @Override
   synchronized public void open() throws IOException {
     checkState(producer == null, "Kafka sink is already initialized. Looks like sink close() " +
-        "hasn't been preceeded properly.");
+        "hasn't proceeded properly.");
 
     Properties properties = new Properties();
     properties.setProperty("zk.connect", zkConnect);
