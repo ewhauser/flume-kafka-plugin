@@ -22,7 +22,7 @@ class Project(info: ProjectInfo) extends StandardLibraryProject(info)
   val junitInterface = "com.novocode" % "junit-interface" % "0.6" % "test->default"
 
   val zookeeper = "org.apache.zookeeper" % "zookeeper" % "3.3.3"
-  val log4j = "log4j" % "log4j" % "1.2.15"
+  val log4j = "log4j" % "log4j" % "1.2.16"
   val jopt = "net.sf.jopt-simple" % "jopt-simple" % "3.2"
   val flume = "com.cloudera" % "flume-core" % "0.9.4-cdh3u1"
   val zkClient = "com.github.sgroschupf" % "zkclient" % "0.1"

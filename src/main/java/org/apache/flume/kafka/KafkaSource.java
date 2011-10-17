@@ -6,6 +6,7 @@ import com.cloudera.flume.conf.SourceFactory;
 import com.cloudera.flume.core.Event;
 import com.cloudera.flume.core.EventImpl;
 import com.cloudera.flume.core.EventSource;
+import com.cloudera.util.Pair;
 import com.google.common.collect.Maps;
 import kafka.consumer.Consumer;
 import kafka.consumer.ConsumerConfig;
@@ -24,6 +25,7 @@ import java.util.Properties;
 import java.util.concurrent.*;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static java.util.Arrays.asList;
 
 public class KafkaSource extends EventSource.Base {
   static final Logger LOG = LoggerFactory.getLogger(KafkaSource.class);
@@ -59,12 +61,14 @@ public class KafkaSource extends EventSource.Base {
     });
   }
 
+  @Override
   public void close() throws IOException {
     // make sure
     shutdown = true;
     try {
       executor.shutdown();
       executor.awaitTermination(2, TimeUnit.SECONDS);
+      LOG.info("Kafka source successfully closed");
     } catch (InterruptedException e) {
       LOG.debug("Waiting for Kafka consumer threads to exit was interrupted", e);
     }
@@ -74,6 +78,7 @@ public class KafkaSource extends EventSource.Base {
    * Blocks on either getting an event from the queue or process exit (at which
    * point it throws an exception).
    */
+  @Override
   public Event next() throws IOException {
     Event evt;
     try {
@@ -90,6 +95,7 @@ public class KafkaSource extends EventSource.Base {
     }
   }
 
+  @Override
   public void open() throws IOException {
     Map<String, Integer> topicCountMap = Maps.newHashMapWithExpectedSize(1);
     topicCountMap.put(topic, threads);
@@ -98,6 +104,8 @@ public class KafkaSource extends EventSource.Base {
     for (KafkaMessageStream stream : consumerMap.get(topic)) {
       executor.submit(new KafkaConsumerThread(stream));
     }
+
+    LOG.info("Kafka source successfully opened");
   }
 
   class KafkaConsumerThread implements Callable<Object> {
@@ -145,6 +153,11 @@ public class KafkaSource extends EventSource.Base {
         return new KafkaSource(zkConnect, topic, groupid, threads);
       }
     };
+  }
+
+  @SuppressWarnings("unchecked")
+  public static List<Pair<String, SourceFactory.SourceBuilder>> getSourceBuilders() {
+    return asList(new Pair<String, SourceFactory.SourceBuilder>("kafka", kafkaSourceBuilder()));
   }
 
 }
